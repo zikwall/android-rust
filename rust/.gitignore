@@ -1,1 +1,5 @@
 .idea
+NDK/arm
+NDK/arm64
+NDK/x86
+lib/target/*

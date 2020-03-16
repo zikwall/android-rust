@@ -5,6 +5,7 @@ import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu
 import android.view.MenuItem
+import android.util.Log
 
 import kotlinx.android.synthetic.main.activity_main.*
 
@@ -19,6 +20,9 @@ class MainActivity : AppCompatActivity() {
             Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show()
         }
+
+        System.loadLibrary("rust")
+        Log.d("rust", hello("World"))
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -36,4 +40,6 @@ class MainActivity : AppCompatActivity() {
             else -> super.onOptionsItemSelected(item)
         }
     }
+
+    external fun hello(to: String): String
 }
