@@ -118,4 +118,114 @@ __Run__ your application in __debug__ mode by clicking on: __Debug app__ and see
 
 ### iOS
 
-_todo_
+#### Getting set up
+
+Before we get started we need to make sure we have the rust toolchain set up. 
+We will assume you already have a working iOS toolchain, if not you should download Xcode and set it up according to any other iOS guide. 
+To make sure you have the xcode command line tools installed run the following command. 
+This all assumes you are running macOS as that is a requirement to build for iOS.
+
+`xcode-select --install`
+
+#### Add iOS Architectures
+
+`rustup target add aarch64-apple-ios armv7-apple-ios armv7s-apple-ios x86_64-apple-ios i386-apple-ios`
+
+#### Cargo dependence
+
+```
+
+cargo install cargo-lipo
+cargo install cbindgen
+
+```
+
+#### Project create if not exist & not use previous step
+
+```
+cargo new rust --lib
+cd rust
+```
+
+#### Rust example code
+
+```rust
+
+use std::os::raw::{c_char};
+use std::ffi::{CString, CStr};
+
+#[no_mangle]
+pub extern fn rust_hello(to: *const c_char) -> *mut c_char {
+    let c_str = unsafe { CStr::from_ptr(to) };
+    let recipient = match c_str.to_str() {
+        Err(_) => "there",
+        Ok(string) => string,
+    };
+    CString::new("Hello ".to_owned() + recipient).unwrap().into_raw()
+}
+
+#[no_mangle]
+pub extern fn rust_hello_free(s: *mut c_char) {
+    unsafe {
+        if s.is_null() { return }
+        CString::from_raw(s)
+    };
+}
+
+```
+
+#### Create C bindings
+
+`cbindgen src/lib.rs -l c > rust.h`
+
+#### Edit Cargo.toml
+
+```toml
+
+[lib]
+name = "rust"
+crate-type = ["staticlib", "cdylib"]
+
+```
+
+#### Xcode
+
+Time to start a new Xcode project and test this out in a simulator. 
+Start by going through the standard Xcode project setup, we’ll be using Swift but you can use Objective-C if you want as well. 
+We will name the project hello-rust saving it next to our rust library at the root of rust-ios-example. 
+Open the generated ViewController.swift and replace its contents with the following.
+
+
+```swift
+import UIKit
+
+class ViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        let result = rust_hello("world")
+        let swift_result = String(cString: result!)
+        rust_hello_free(UnsafeMutablePointer(mutating: result))
+        print(swift_result)
+    }
+}
+
+```
+
+#### Copy
+
+```
+
+cd ~/rust-ios-example # or wherever you created this project
+
+mkdir hello-rust/libs
+mkdir hello-rust/include
+
+cp rust/rust.h hello-rust/include
+cp rust/target/universal/release/librust.a hello-rust/libs
+
+```
+
+#### Or run automatically iOS linked script
+
+`cd rust && ./link-ios.sh`
